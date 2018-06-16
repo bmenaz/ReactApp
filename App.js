@@ -1,10 +1,10 @@
-import React from 'react';
-import { FlatList, ActivityIndicator,Button, View, Text } from 'react-native';
+import React, {PureComponent} from 'react';
+import { FlatList, ActivityIndicator,Button, View, Text, Image, StyleSheet } from 'react-native';
 import { createStackNavigator } from 'react-navigation';
 
 class HomeScreen extends React.Component {
 	static navigationOptions = {
-		title: 'HomeScreen'
+		title: 'Home Screen'
 	};
   render() {
     return (
@@ -18,7 +18,7 @@ class HomeScreen extends React.Component {
   }
 }
 
-class Cameras extends React.Component {
+class Cameras extends React.PureComponent {
 	static navigationOptions = {
     title: 'Cameras',
   };
@@ -32,22 +32,34 @@ class Cameras extends React.Component {
     return fetch('https://web6.seattle.gov/Travelers/api/Map/Data?zoomId=17&type=2')
       .then((response) => response.json())
       .then((responseJson) => {
-
+		var arr = [];
         this.setState({
           isLoading: false,
-          dataSource: responseJson.features,
+          dataSource: responseJson.Features,
+		  data: arr
         }, function(){
-
-        });
-
+			for(var featureIdx in this.state.dataSource){
+				var camerasObj = this.state.dataSource[featureIdx]["Cameras"];
+				for(var cameraIdx in camerasObj){
+					//this.state.data.push(camerasObj[cameraIdx]['Type']);
+					var url = "";
+					if(camerasObj[cameraIdx]['Type']==('sdot')){
+						url = "http://www.seattle.gov/trafficcams/images/" + camerasObj[cameraIdx]['ImageUrl'];
+					}
+					else{
+						url = "http://images.wsdot.wa.gov/nw/" + camerasObj[cameraIdx]['ImageUrl'];
+					}
+					this.state.data.push({Description: camerasObj[cameraIdx]['Description'], 
+						  imgUrl: url});
+				}
+			
+			}			
+		});
       })
       .catch((error) =>{
         console.error(error);
       });
   }
-
-
-
   render(){
 
     if(this.state.isLoading){
@@ -57,18 +69,41 @@ class Cameras extends React.Component {
         </View>
       )
     }
-
+	
     return(
       <View style={{flex: 1, paddingTop:20}}>
         <FlatList
-          data={this.state.dataSource}
-          renderItem={({item}) => <Text>{item['PointCoordinate']}</Text>}
+          data={this.state.data}
+          renderItem={({item}) => 
+		  <View style={{flex:1, flexDirection: 'row'}}> 
+			<Image source = {{ uri: item.imgUrl }} style={styles.imageView} />
+			<Text style={styles.textView}>{item.Description}</Text>		
+			</View>
+			}
           keyExtractor={(item, index) => index}
         />
       </View>
     );
   }
 }
+
+const styles = StyleSheet.create({
+	imageView: {
+    width: '50%',
+    height: 100 ,
+    margin: 7,
+    borderRadius : 1
+ 
+},
+textView: {
+
+    width:'50%', 
+    textAlignVertical:'center',
+    padding:10,
+    color: '#000'
+ 
+}
+});
 
 const RootStack = createStackNavigator(
   {
